@@ -1,5 +1,5 @@
 # Synapse X UI For Krampus
-For help Discord: decerzz
+Discord: decerzz
 
 The source of this is taken from [Synapse X Source Code UI WPF](https://github.com/Acrillis/SynapseX/tree/master/Synapse%20UI%20WPF) and edited to work with [Krampus](https://krampus.gg/)
 
