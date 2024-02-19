@@ -7,4 +7,4 @@ When building it yourself, make sure it has the bin and scripts folder included 
 # How to use!
 Extract the UI and scripts folder exactly into the same folder as Krampus (Screenshot)
 Then open Synapse UI WPF.exe under UI
-![image](https://cdn.discordapp.com/attachments/1208592024857743420/1209218707042205737/image.png)
+![image](https://i.imgur.com/NdSCEkL.png)
