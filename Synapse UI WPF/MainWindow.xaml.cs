@@ -26,7 +26,6 @@ using Newtonsoft.Json;
 using Synapse_UI_WPF.Controls;
 using Synapse_UI_WPF.Interfaces;
 using Synapse_UI_WPF.Static;
-using Synapse_UI_WPF.Watcher;
 using WebSocketSharp;
 using static System.Net.Mime.MediaTypeNames;
 using static Synapse_UI_WPF.Interfaces.ThemeInterface;
@@ -36,7 +35,6 @@ namespace Synapse_UI_WPF
 {
     public partial class MainWindow
     {
-        public ProcessWatcher Watcher;
 
         public delegate void InteractMessageEventHandler(object sender, string Input);
         public event InteractMessageEventHandler InteractMessageRecieved;
@@ -75,35 +73,6 @@ namespace Synapse_UI_WPF
             HubWorker.DoWork += HubWorker_DoWork;
             StreamReader InteractReader = null;
             StreamReader LaunchReader;
-
-            try
-            {
-                Watcher = new ProcessWatcher("RobloxPlayerBeta.exe");
-                Watcher.ProcessCreated += Proc =>
-                {
-                    if (!Globals.Options.AutoAttach || Globals.Options.AutoLaunch) return;
-                    RobloxIdOverride = Convert.ToInt32(Proc.ProcessId);
-                    Worker.RunWorkerAsync();
-                };
-                Watcher.ProcessDeleted += Proc =>
-                {
-                    if (Proc.ProcessId == RobloxIdTemp)
-                    {
-                        InteractReader?.Close();
-                    }
-                };
-                Watcher.Start();
-            }
-            catch (Exception)
-            {
-                if (!DataInterface.Exists("failnotice"))
-                {
-                    MessageBox.Show(
-                        "Synapse failed to create its process watching agent. AutoLaunch will not be as usable.\n\nUnfortunately, this issue is not fixable without upgrading to Windows 10. Blame Microsoft being terrible.\n\nThis message will not be displayed anymore, sorry for your inconvenience.",
-                        "Synapse X", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    DataInterface.Save("failnotice", true);
-                }
-            }
 
             if (DataInterface.Exists("savedpid"))
             {
@@ -203,11 +172,18 @@ namespace Synapse_UI_WPF
             if (data.Length == 0) return;
             Dispatcher.Invoke(() =>
             {
-                using (var ws = new WebSocket("wss://loader.live/?login_token=\"" + Globals.LoginKey + "\""))
+                try
                 {
-                    ws.Connect();
-                    ws.Send("<SCRIPT>" + data);
-                    ws.Close();
+                    var text = File.ReadAllLines("../launch.cfg");
+                    string[] dd = text[0].Split("|".ToCharArray());
+                    using (var ws = new WebSocket("wss://loader.live/?login_token=\"" + dd[0] + "\""))
+                    {
+                        ws.Connect();
+                        ws.Send("<SCRIPT>" + data);
+                        ws.Close();
+                    }
+                } catch {
+                    MessageBox.Show("Unable to execute or find token! Make sure UI is installed correctly!", "Synapse X", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             });
         }

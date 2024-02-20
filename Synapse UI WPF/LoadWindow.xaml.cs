@@ -28,17 +28,14 @@ namespace Synapse_UI_WPF
 
         public static ThemeInterface.TInitStrings InitStrings;
         public static BackgroundWorker LoadWorker = new BackgroundWorker();
-
-        [DllImport("user32.dll")]
-        private static extern Boolean ShowWindow(IntPtr hWnd, Int32 nCmdShow);
         public LoadWindow()
         {
             Process currentProcess = Process.GetCurrentProcess();
             var runningProcess = (from process in Process.GetProcesses() where process.Id != currentProcess.Id && process.ProcessName.Equals(currentProcess.ProcessName, StringComparison.Ordinal) select process).FirstOrDefault();
             if (runningProcess != null)
             {
-                ShowWindow(runningProcess.MainWindowHandle, 1);
-                Environment.Exit(0);
+                runningProcess.Kill();
+                //Environment.Exit(0);
             }
             AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
             {
@@ -227,13 +224,20 @@ namespace Synapse_UI_WPF
                     Environment.Exit(0);
                 });
             }
-            */
 
+
+            fuckthis tooo...
             SetStatusText("Getting Krampus login token...", 80);
             try {
                 var text = File.ReadAllLines("../launch.cfg");
                 string[] dd = text[0].Split("|".ToCharArray());
                 Globals.LoginKey = dd[0];
+                Dispatcher.Invoke(() =>
+                {
+                    var Main = new MainWindow();
+                    Main.Show();
+                    Close();
+                });
             }
             catch
             {
@@ -244,6 +248,7 @@ namespace Synapse_UI_WPF
                     Environment.Exit(0);
                 });
             }
+            */
 
             Dispatcher.Invoke(() =>
             {
