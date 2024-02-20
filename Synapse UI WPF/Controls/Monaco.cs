@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.IO;
+using System.Windows;
 using System.Windows.Input;
+using Microsoft.Win32;
 using CefSharp;
 using CefSharp.Wpf;
 using CefSharp.Wpf.Internals;
@@ -26,17 +29,37 @@ namespace Synapse_UI_WPF.Controls
         public double FontSize; // Determine's the font size of the text.
         public string FontFamily; // Set's the font family for the editor.
         public string RenderWhitespace; // "none" | "boundary" | "all"
+        public static Monaco This;
     }
 
-    [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = false)]
+    public class synServiceAsync
+    {
+         public static void openRequest()
+        {
+            var OpenDialog = new OpenFileDialog
+            {
+                Filter = "Script Files (*.lua, *.txt)|*.lua;*.txt",
+                Title = "Synapse X - Open File",
+                FileName = ""
+            };
+
+            if (OpenDialog.ShowDialog() != true) return;
+
+            try
+            {
+                var text = File.ReadAllText(OpenDialog.FileName);
+                MonacoSettings.This.ExecuteScriptAsync("SetText", text); ;
+            }
+            catch (Exception ex) { Console.WriteLine(ex); }
+        }
+    }
+
     public class Monaco : ChromiumWebBrowser
     {
         public bool MonacoLoaded;
         public delegate void MonacoReadyDelegate();
 
-        [Obfuscation(Feature = "renaming", Exclude = true)]
         public event MonacoReadyDelegate MonacoReady;
-
         public Monaco()
         {
                 Address = $"file:///{Environment.CurrentDirectory.Replace("\\", "/")}/bin/Monaco.html";
@@ -47,6 +70,10 @@ namespace Synapse_UI_WPF.Controls
 
                     MonacoLoaded = true;
                     MonacoReady?.Invoke();
+                    CefSharpSettings.LegacyJavascriptBindingEnabled = true;
+                    CefSharpSettings.WcfEnabled = true;
+                    this.JavascriptObjectRepository.Register("synServiceAsync", new synServiceAsync(), true);
+                    MonacoSettings.This = this;
                 };
         }
 
@@ -79,10 +106,10 @@ namespace Synapse_UI_WPF.Controls
             switch (theme)
             {
                 case MonacoTheme.Dark:
-                    this.ExecuteScriptAsync("SetTheme", "Dark");
+                    this.ExecuteScriptAsync("SetTheme", "tomorrow_night_eighties");
                     break;
                 case MonacoTheme.Light:
-                    this.ExecuteScriptAsync("SetTheme", "Light");
+                    this.ExecuteScriptAsync("SetTheme", "tomorrow_solarized_light");
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(theme), theme, null);

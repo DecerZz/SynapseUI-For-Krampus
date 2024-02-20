@@ -123,6 +123,9 @@
   <PropertyGroup>
     <SignManifests>true</SignManifests>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="CefSharp, Version=73.1.130.0, Culture=neutral, PublicKeyToken=40c4b6fc221f4138, processorArchitecture=x86" />
     <Reference Include="CefSharp.Core, Version=73.1.130.0, Culture=neutral, PublicKeyToken=40c4b6fc221f4138, processorArchitecture=x86" />
@@ -183,23 +186,13 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Controls\Monaco.cs" />
-    <Compile Include="LoginWindow.xaml.cs">
-      <DependentUpon>LoginWindow.xaml</DependentUpon>
-    </Compile>
+    <Compile Include="Interfaces\WebInterface.cs" />
+    <Compile Include="Interfaces\WebSockerInterface.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="OptionsWindow.xaml.cs">
       <DependentUpon>OptionsWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="RedeemWindow.xaml.cs">
-      <DependentUpon>RedeemWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="RegisterWindow.xaml.cs">
-      <DependentUpon>RegisterWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="ResetWindow.xaml.cs">
-      <DependentUpon>ResetWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="ScriptHubWindow.xaml.cs">
       <DependentUpon>ScriptHubWindow.xaml</DependentUpon>
@@ -207,7 +200,6 @@
     <Compile Include="Static\Data.cs" />
     <Compile Include="Static\Extensions.cs" />
     <Compile Include="Static\Globals.cs" />
-    <Compile Include="Static\ObfuscationSettings.cs" />
     <Compile Include="Static\Utils.cs" />
     <Compile Include="Watcher\Process.cs">
       <SubType>Component</SubType>
@@ -225,35 +217,17 @@
     </Compile>
     <Compile Include="Interfaces\CInterface.cs" />
     <Compile Include="Interfaces\DataInterface.cs" />
-    <Compile Include="Interfaces\DiscordInterface.cs" />
     <Compile Include="Interfaces\SecurityInterface.cs" />
     <Compile Include="Interfaces\ThemeInterface.cs" />
-    <Compile Include="Interfaces\WebInterface.cs" />
     <Compile Include="LoadWindow.xaml.cs">
       <DependentUpon>LoadWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="LoginWindow.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
     <Page Include="MainWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="OptionsWindow.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="RedeemWindow.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="RegisterWindow.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="ResetWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -281,6 +255,7 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <None Include="app.manifest" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

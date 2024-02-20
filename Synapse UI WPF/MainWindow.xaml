@@ -29,8 +29,8 @@
             <Image x:Name="IconBox" Source="sxlogosmallwhite_OJJ_icon.ico" HorizontalAlignment="Left" Margin="6,1,0,0" VerticalAlignment="Top" MouseLeftButtonDown="IconBox_MouseLeftButtonDown"/>
         </Grid>
 
-        <controls:Monaco x:Name="Browser" RenderOptions.BitmapScalingMode="HighQuality" HorizontalAlignment="Left" Height="272" Margin="10,4.6,0,0" Grid.Row="1" VerticalAlignment="Top" Width="658" MonacoReady="Browser_MonacoReady"/>
-        
+        <controls:Monaco x:Name="Browser" RenderOptions.BitmapScalingMode="HighQuality" HorizontalAlignment="Left" Height="267" Margin="10,10,0,0" Grid.Row="1" VerticalAlignment="Top" Width="658" MonacoReady="Browser_MonacoReady"/>
+
         <ListBox Name="ScriptBox" BorderThickness="0" HorizontalAlignment="Left" Height="272" Margin="673,4.6,0,0" Grid.Row="1" VerticalAlignment="Top" Width="122" Background="#FF3C3C3C" Foreground="White">
             <ListBox.ContextMenu>
                 <ContextMenu>
@@ -40,7 +40,7 @@
                 </ContextMenu>
             </ListBox.ContextMenu>
         </ListBox>
-        
+
         <Button Name="ExecuteButton" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" Content="Execute" HorizontalAlignment="Left" Margin="10,281.6,0,0" Grid.Row="1" VerticalContentAlignment="Center" VerticalAlignment="Top" Width="91" Height="33" Background="#FF3C3C3C" Foreground="White" FontSize="14" Click="ExecuteButton_Click"/>
         <Button Name="ClearButton" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" Content="Clear" HorizontalAlignment="Left" Margin="106,281.6,0,0" Grid.Row="1" VerticalContentAlignment="Center" VerticalAlignment="Top" Width="91" Height="33" Background="#FF3C3C3C" Foreground="White" FontSize="14" Click="ClearButton_Click"/>
         <Button Name="OpenFileButton" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" Content="Open File" HorizontalAlignment="Left" Margin="202,281.6,0,0" Grid.Row="1" VerticalContentAlignment="Center" VerticalAlignment="Top" Width="91" Height="33" Background="#FF3C3C3C" Foreground="White" FontSize="14" Click="OpenFileButton_Click"/>
@@ -50,8 +50,30 @@
 
         <Button Name="AttachButton" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" Content="Attach" HorizontalAlignment="Left" Margin="608,281.6,0,0" Grid.Row="1" VerticalContentAlignment="Center" VerticalAlignment="Top" Width="91" Height="33" Background="#FF3C3C3C" Foreground="White" FontSize="14" Click="AttachButton_Click"/>
         <Button Name="ScriptHubButton" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" Content="Script Hub" HorizontalAlignment="Left" Margin="704,281.6,0,0" Grid.Row="1" VerticalContentAlignment="Center" VerticalAlignment="Top" Width="91" Height="33" Background="#FF3C3C3C" Foreground="White" FontSize="14" Click="ScriptHubButton_Click"/>
-       
+
         <!-- Shitty hack. -->
         <Label Name="BottomControl" Visibility="Hidden" Content="AAA" HorizontalAlignment="Left" Margin="10,312.6,0,2.2" Grid.Row="1" FontSize="1"/>
+        <TabControl Grid.Row="1" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}" Margin="10,0,133,299" x:Name="TabSystem" SelectionChanged="TabSystem_SelectionChanged" Width="658" Height="25" Visibility="Hidden">
+            <TabItem Header="Tab 1" Background="#696969" Foreground="White" BorderBrush="#545454">
+                <TabItem.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Name="Close" Header="Close" Click="CloseTab_Click"/>
+                        <MenuItem Name="Clear" Header="Clear" Click="ClearTab_Click"/>
+                    </ContextMenu>
+                </TabItem.ContextMenu>
+            </TabItem>
+
+            <TabItem  Header="+" x:Name="AddTabButton" Background="#696969" Foreground="White" BorderBrush="#545454">
+                <TabItem.Style>
+                    <Style TargetType="{x:Type TabItem}">
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="Black"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </TabItem.Style>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>

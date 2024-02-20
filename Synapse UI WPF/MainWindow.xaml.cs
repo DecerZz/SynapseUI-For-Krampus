@@ -3,6 +3,8 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.IO.Compression;
 using System.IO.Pipes;
@@ -11,8 +13,12 @@ using System.Reflection;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Markup;
+using System.Windows.Media;
 using CefSharp;
 using CefSharp.Wpf;
 using Microsoft.Win32;
@@ -23,6 +29,7 @@ using Synapse_UI_WPF.Static;
 using Synapse_UI_WPF.Watcher;
 using WebSocketSharp;
 using static System.Net.Mime.MediaTypeNames;
+using static Synapse_UI_WPF.Interfaces.ThemeInterface;
 using Process = System.Diagnostics.Process;
 
 namespace Synapse_UI_WPF
@@ -34,12 +41,13 @@ namespace Synapse_UI_WPF
         public delegate void InteractMessageEventHandler(object sender, string Input);
         public event InteractMessageEventHandler InteractMessageRecieved;
 
-        [Obfuscation(Feature = "virtualization", Exclude = false)]
+
         private int RobloxIdOverride;
-        [Obfuscation(Feature = "virtualization", Exclude = false)]
+
         private int RobloxIdTemp;
-        [Obfuscation(Feature = "virtualization", Exclude = false)]
+
         private static int RbxId;
+        public bool ConnectedToKrampus = false;
 
         public bool OptionsOpen;
 
@@ -55,18 +63,16 @@ namespace Synapse_UI_WPF
         public static BackgroundWorker Worker = new BackgroundWorker();
         public static BackgroundWorker HubWorker = new BackgroundWorker();
 
-      public MainWindow()
+        public MainWindow()
         {
-			Cef.EnableHighDPISupport();
-			var settings = new CefSettings();
-			settings.SetOffScreenRenderingBestPerformanceArgs();
-			Cef.Initialize(settings);
+            Cef.EnableHighDPISupport();
+            var settings = new CefSettings();
+            settings.SetOffScreenRenderingBestPerformanceArgs();
+            Cef.Initialize(settings);
 
-			InitializeComponent();
+            InitializeComponent();
 
-			Worker.DoWork += Worker_DoWork;
             HubWorker.DoWork += HubWorker_DoWork;
-
             StreamReader InteractReader = null;
             StreamReader LaunchReader;
 
@@ -118,6 +124,8 @@ namespace Synapse_UI_WPF
                 }
             }
 
+            WebSocketInterface.Start(24892, this);
+
             var TMain = Globals.Theme.Main;
             ThemeInterface.ApplyWindow(this, TMain.Base);
             ThemeInterface.ApplyLogo(IconBox, TMain.Logo);
@@ -142,141 +150,30 @@ namespace Synapse_UI_WPF
 
             BaseDirectory = Directory.GetParent(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)).FullName;
 
-            new Thread(() =>
-            {
-                var PS = new PipeSecurity();
-                var Rule = new PipeAccessRule(new SecurityIdentifier(WellKnownSidType.WorldSid, null), PipeAccessRights.ReadWrite, AccessControlType.Allow);
-                PS.AddAccessRule(Rule);
-                var Server = new NamedPipeServerStream("SynapseInteract", PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.None, 0, 0, PS);
-                Server.WaitForConnection();
-                InteractReader = new StreamReader(Server);
-                while (true)
-                {
-                    string Line;
-                    try
-                    {
-                        Line = InteractReader.ReadLine();
-                    }
-                    catch (Exception)
-                    {
-                        Line = "SYN_INTERRUPT";
-                    }
-                    if (string.IsNullOrWhiteSpace(Line)) Line = "SYN_INTERRUPT";
-                    InteractMessageRecieved?.Invoke(this, Line);
-                    if (Line != "SYN_READY" && Line != "SYN_REATTACH_READY" && Line != "SYN_INTERRUPT") continue;
-                    InteractReader.Close();
-                    Server.Close();
-                    Thread.Sleep(3000);
-                    Server = new NamedPipeServerStream("SynapseInteract", PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.None, 0, 0, PS);
-                    Server.WaitForConnection();
-                    InteractReader = new StreamReader(Server);
-                }
-            }).Start();
-
-            new Thread(() =>
-            {
-                var PS = new PipeSecurity();
-                var Rule = new PipeAccessRule(new SecurityIdentifier(WellKnownSidType.WorldSid, null), PipeAccessRights.ReadWrite, AccessControlType.Allow);
-                PS.AddAccessRule(Rule);
-                var Server = new NamedPipeServerStream("SynapseLaunch", PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.None, 0, 0, PS);
-                Server.WaitForConnection();
-                LaunchReader = new StreamReader(Server);
-                while (true)
-                {
-                    string Line;
-                    try
-                    {
-                        Line = LaunchReader.ReadLine();
-                    }
-                    catch (Exception)
-                    {
-                        Line = "SYN_INTERRUPT";
-                    }
-
-                    if (Line?.Split('|')[0] == "SYN_LAUNCH_NOTIIFCATION")
-                    {
-                        RobloxIdTemp = int.Parse(Line.Split('|')[1]);
-                    }
-
-                    if (Line?.Split('|')[0] != "SYN_LAUNCH_NOTIIFCATION") continue;
-                    LaunchReader.Close();
-                    Server.Close();
-                    Thread.Sleep(3000);
-                    Server = new NamedPipeServerStream("SynapseLaunch", PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.None, 0, 0, PS);
-                    Server.WaitForConnection();
-                    LaunchReader = new StreamReader(Server);
-                }
-            }).Start();
-
-            new Thread(() =>
-            {
-                while (true)
-                {
-                    Thread.Sleep(15000);
-
-                    try
-                    {
-                        var EditorText = "";
-                        Dispatcher.Invoke(() => { EditorText = Browser.GetText(); });
-
-                        DataInterface.Save("savedws", EditorText);
-                    }
-                    catch (Exception) { }
-                }
-            }).Start();
-
-            InteractMessageRecieved += delegate (object Sender, string Input)
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    switch (Input)
-                    {
-                        case "SYN_CHECK_WL":
-                            SetTitle(AttachStrings.CheckingWhitelist);
-                            break;
-                        case "SYN_SCANNING":
-                            SetTitle(AttachStrings.Scanning);
-                            break;
-                        case "SYN_INTERRUPT":
-                            SetTitle(" (failed to attach!)", 3000);
-                            break;
-                        case "SYN_READY":
-                        case "SYN_REATTACH_READY":
-                        {
-                            SetTitle(AttachStrings.Ready, 3000);
-                            break;
-                        }
-                    }
-                });
-
-                if (Input == "SYN_READY")
-                {
-                    var ProcList = Process.GetProcessesByName("RobloxPlayerBeta");
-                    RbxId = RobloxIdTemp == 0 ? ProcList[0].Id : RobloxIdTemp;
-                    RobloxIdTemp = 0;
-                    var EnableUnlock = Globals.Options.UnlockFPS ? "TRUE" : "FALSE";
-                    var EnableWebSocket = TMain.WebSocket.Enabled ? "TRUE" : "FALSE";
-                    var EnableInternalUI = Globals.Options.InternalUI ? "TRUE" : "FALSE";
-                    var EnableIngameChat = Globals.Options.IngameChat ? "TRUE" : "FALSE";
-                    Execute("SYN_FILE_PATH|" + Path.Combine(BaseDirectory, "workspace") + "|" + EnableUnlock + "|" + EnableWebSocket + "|" + EnableInternalUI + "|" + EnableIngameChat);
-                }
-            };
 
             ScriptsDirectory = Path.Combine(BaseDirectory, "scripts");
+            if (!Directory.Exists((ScriptsDirectory))) Directory.CreateDirectory(ScriptsDirectory);
 
             foreach (var FilePath in Directory.GetFiles(ScriptsDirectory))
             {
                 ScriptBox.Items.Add(Path.GetFileName(FilePath));
             }
 
+            foreach (var FilePath in Directory.GetFiles("bin/tabs/"))
+            {
+                Console.WriteLine(Path.GetFileName(FilePath));
+                CreateTab(Path.GetFileName(FilePath).Split(".".ToCharArray())[0]);
+            }
+
         }
+
 
         public void SetTitle(string Str, int Delay = 0)
         {
             Dispatcher.Invoke(() =>
             {
                 TitleBox.Content =
-                    ThemeInterface.ConvertFormatString(Globals.Theme.Main.TitleBox, Globals.Version) + Str;
+                    ThemeInterface.ConvertFormatString(Globals.Theme.Main.TitleBox, Str);
             });
 
             if (Delay != 0)
@@ -293,62 +190,26 @@ namespace Synapse_UI_WPF
             }
         }
 
-        [Obfuscation(Feature = "virtualization", Exclude = false)]
-        public string GetPipeName(string PipeName)
-        {
-            return Utils.Sha512(PipeName + RbxId).ToLower().Substring(0, 16);
-        }
 
-        [Obfuscation(Feature = "virtualization", Exclude = false)]
         public bool Ready()
         {
-            var ProcList = Process.GetProcessesByName("RobloxPlayerBeta");
-            return ProcList.Length != 0 && ProcList[0].Id == RbxId;
+            //var ProcList = Process.GetProcessesByName("RobloxPlayerBeta");
+            //return ProcList.Length != 0 && ProcList[0].Id == RbxId;
+            return true;
         }
 
-        [Obfuscation(Feature = "virtualization", Exclude = false)]
-        public static void SendData(string PipeName, string data, int timeout = 0)
-        {
-            NamedPipeClientStream namedPipeClientStream = null;
-            try
-            {
-                namedPipeClientStream = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
-                namedPipeClientStream.Connect(timeout);
-                using (var streamWriter = new StreamWriter(namedPipeClientStream))
-                {
-                    streamWriter.Write(data);
-                }
-            }
-            catch (TimeoutException)
-            {
-            }
-            finally
-            {
-                namedPipeClientStream?.Dispose();
-            }
-        }
-
-        [Obfuscation(Feature = "virtualization", Exclude = false)]
         public void Execute(string data)
         {
             if (data.Length == 0) return;
-
-            if (File.Exists("../launch.cfg"))
+            Dispatcher.Invoke(() =>
             {
-                var text = File.ReadAllLines("../launch.cfg");
-                string[] dd = text[0].Split("|".ToCharArray());
-                using (var ws = new WebSocket("wss://loader.live/?login_token=\"" + dd[0] +"\""))
+                using (var ws = new WebSocket("wss://loader.live/?login_token=\"" + Globals.LoginKey + "\""))
                 {
                     ws.Connect();
                     ws.Send("<SCRIPT>" + data);
                     ws.Close();
                 }
-            }
-            else
-            {
-                SetTitle("Unable to find launch.cfg, Make sure it's in the same folder", 3000);
-                return;
-            }
+            });
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -367,209 +228,8 @@ namespace Synapse_UI_WPF
         private void Browser_MonacoReady()
         {
             Browser.SetTheme(Globals.Theme.Main.Editor.Light ? MonacoTheme.Light : MonacoTheme.Dark);
-
-            var SavedWS = "";
-            try
-            {
-                if (DataInterface.Exists("savedws")) SavedWS = DataInterface.Read<string>("savedws");
-            }
-            catch (Exception)
-            {
-                DataInterface.Save("savedws", "");
-            }
-
-            Browser.SetText(SavedWS);
-
-            /* Intellisense */
-
-            var KeywordsControlFlow = new List<string>
-            {
-                "and", "do", "elseif",
-                "for", "function", "if",
-                "in", "local", "not", "or",
-                "then", "until", "while"
-            };
-
-            var KeywordsValue = new List<string>
-            {
-                "_G", "shared", "true", "false", "nil", "end",
-                "break", "else", "repeat", "then", "return"
-            };
-
-            var IntellisenseNoDocs = new List<string>
-            {
-                "error", "getfenv", "getmetatable",
-                "newproxy", "next", "pairs",
-                "pcall", "print", "rawequal", "rawget", "rawset", "select", "setfenv",
-                "tonumber", "tostring", "type", "unpack", "xpcall", "_G",
-                "shared", "delay", "require", "spawn", "tick", "typeof", "wait", "warn",
-                "game", "Enum", "script", "workspace"
-            };
-
-            foreach (var Key in KeywordsControlFlow)
-            {
-                Browser.AddIntellisense(Key, "Keyword", "", Key + " ");
-            }
-
-            foreach (var Key in KeywordsValue)
-            {
-                Browser.AddIntellisense(Key, "Keyword", "", Key);
-            }
-
-            foreach (var Key in IntellisenseNoDocs)
-            {
-                Browser.AddIntellisense(Key, "Method", "", Key);
-            }
-
-            Browser.AddIntellisense("hookfunction(<function> old, <function> hook)", "Method",
-                "Hooks function 'old', replacing it with the function 'hook'. The old function is returned, you must use it to call the function further.",
-                "hookfunction");
-            Browser.AddIntellisense("getgenv(<void>)", "Method",
-                "Returns the environment that will be applied to each script ran by Synapse.",
-                "getgenv");
-            Browser.AddIntellisense("keyrelease(<int> key)", "Method",
-                "Releases 'key' on the keyboard. You can access the int key values on MSDN.",
-                "keyrelease");
-            Browser.AddIntellisense("setclipboard(<string> value)", "Method",
-                "Sets 'value' to the clipboard.",
-                "setclipboard");
-            Browser.AddIntellisense("mouse2press(<void>)", "Method",
-                "Clicks down on the right mouse button.",
-                "mouse2press");
-            Browser.AddIntellisense("getsenv(<LocalScript, ModuleScript> Script)", "Method",
-                "Returns the environment of Script. Returns nil if the script is not running.",
-                "getsenv");
-            Browser.AddIntellisense("checkcaller(<void>)", "Method",
-                "Returns true if the current thread was made by Synapse. Useful for metatable hooks.",
-                "checkcaller");
-
-            Browser.AddIntellisense("bit", "Class", "Bit Library", "bit");
-            Browser.AddIntellisense("bit.bdiv(<uint> dividend, <uint> divisor)", "Method",
-                "Divides 'dividend' by 'divisor', remainder is not returned.",
-                "bit.bdiv");
-            Browser.AddIntellisense("bit.badd(<uint> a, <uint> b)", "Method",
-                "Adds 'a' with 'b', allows overflows (unlike normal Lua).",
-                "bit.badd");
-            Browser.AddIntellisense("bit.bsub(<uint> a, <uint> b)", "Method",
-                "Subtracts 'a' with 'b', allows overflows (unlike normal Lua).",
-                "bit.badd");
-            Browser.AddIntellisense("bit.rshift(<uint> val, <uint> by)", "Method",
-                "Does a right shift on 'val' using 'by'.",
-                "bit.rshift");
-            Browser.AddIntellisense("bit.band(<uint> val, <uint> by)", "Method",
-                "Does a logical AND (&) on 'val' using 'by'.",
-                "bit.band");
-            Browser.AddIntellisense("bit.bor(<uint> val, <uint> by)", "Method",
-                "Does a logical OR (|) on 'val' using 'by'.",
-                "bit.bor");
-            Browser.AddIntellisense("bit.bxor(<uint> val, <uint> by)", "Method",
-                "Does a logical XOR (^) on 'val' using 'by'.",
-                "bit.bxor");
-            Browser.AddIntellisense("bit.bnot(<uint> val)", "Method",
-                "Does a logical NOT on 'val'.",
-                "bit.bnot");
-            Browser.AddIntellisense("bit.bmul(<uint> val, <uint> by)", "Method",
-                "Multiplies 'val' using 'by', allows overflows (unlike normal Lua)",
-                "bit.bmul");
-            Browser.AddIntellisense("bit.bswap(<uint> val)", "Method",
-                "Does a bitwise swap on 'val'.",
-                "bit.bswap");
-            Browser.AddIntellisense("bit.tobit(<uint> val)", "Method",
-                "Converts 'val' into proper form for bitwise operations.",
-                "bit.tobit");
-            Browser.AddIntellisense("bit.ror(<uint> val, <uint> by)", "Method",
-                "Rotates right 'val' using 'by'.",
-                "bit.ror");
-            Browser.AddIntellisense("bit.lshift(<uint> val, <uint> by)", "Method",
-                "Does a left shift on 'val' using 'by'.",
-                "bit.lshift");
-            Browser.AddIntellisense("bit.tohex(<uint> val)", "Method",
-                "Converts 'val' to a hex string.",
-                "bit.tohex");
-
-            Browser.AddIntellisense("debug", "Class", "Debug Library", "debug");
-            Browser.AddIntellisense("debug.getconstant(<function, int> fi, <int> idx)", "Method", "Returns the constant at index 'idx' in function 'fi' or level 'fi'.", "debug.getconstant");
-            Browser.AddIntellisense("debug.profilebegin(<string> label>", "Method", "Opens a microprofiler label.", "debug.profilebegin");
-            Browser.AddIntellisense("debug.profileend(<void>)", "Method", "Closes the top microprofiler label.", "debug.profileend");
-            Browser.AddIntellisense("debug.traceback(<void>)", "Method", "Returns a traceback of the current stack as a string.", "debug.traceback");
-            Browser.AddIntellisense("debug.getfenv(<T> o)", "Method", "Returns the environment of object 'o'.", "debug.getfenv");
-            Browser.AddIntellisense("debug.getupvalue(<function, int> fi, <string> upval)", "Method", "Returns the upvalue with name 'upval' in function or level 'fi'.", "debug.getupvalue");
-            Browser.AddIntellisense("debug.getlocals(<int> lvl)", "Method", "Returns a table containing the upvalues at level 'lvl'.", "debug.getlocals");
-            Browser.AddIntellisense("debug.setmetatable(<T> o, <table> mt)", "Method", "Set the metatable of 'o' to 'mt'.", "debug.setmetatable");
-            Browser.AddIntellisense("debug.getconstants(<function, int> fi)", "Method", "Retrieve the constants in function 'fi' or at level 'fi'.", "debug.getconstants");
-            Browser.AddIntellisense("debug.getupvalues(<function, int> fi)", "Method", "Retrieve the upvalues in function 'fi' or at level 'fi'.", "debug.getupvalues");
-            Browser.AddIntellisense("debug.setlocal(<int> lvl, <string> localname, <T> value)", "Method", "Set local 'localname' to value 'value' at level 'lvl'.", "debug.setlocal");
-            Browser.AddIntellisense("debug.setupvalue(<function, int> fi, <string> upvname, <T> value)", "Method", "Set upvalue 'upvname' to value 'value' at level or function 'fi'.", "debug.setupvalue");
-            Browser.AddIntellisense("debug.setconstant(<function, int> fi, <string> consname, <int, bool, nil, string> value)", "Method", "Set constant 'consname' to tuple 'value' at level or function 'fi'.", "debug.setupvalue");
-            Browser.AddIntellisense("debug.getregistry(<void>)", "Method", "Returns the registry", "debug.getregistry");
-            Browser.AddIntellisense("debug.getinfo(<function, int> fi, <string> w)", "Method", "Returns a table of info pertaining to the Lua function 'fi'.", "debug.getinfo");
-            Browser.AddIntellisense("debug.getlocal(<int> lvl, <string> localname)", "Method", "Returns the local with name 'localname' in level 'lvl'.", "debug.getlocal");
-
-            Browser.AddIntellisense("loadfile(<string> path)", "Method", "Loads in the contents of a file as a chunk and returns it if compilation is successful. Otherwise, if an error has occured during compilation, nil followed by the error message will be returned.", "loadfile");
-            Browser.AddIntellisense("loadstring(<string> chunk, [<string> chunkname])", "Method", "Loads 'chunk' as a Lua function and returns it if compilation is succesful. Otherwise, if an error has occured during compilation, nil followed by the error message will be returned.", "loadstring");
-            Browser.AddIntellisense("writefile(<string> filepath, <string> contents)", "Method", "Writes 'contents' to the supplied filepath.", "writefile");
-            Browser.AddIntellisense("mousescroll(<signed int> px)", "Method", "Scrolls the mouse wheel virtually by 'px' pixels.", "mousescroll");
-            Browser.AddIntellisense("mouse2click(<void>)", "Method", "Virtually presses the right mouse button.", "mouse2click");
-            Browser.AddIntellisense("islclosure(<function> f)", "Method", "Returns true if 'f' is an LClosure", "islclosure");
-            Browser.AddIntellisense("mouse1press(<void>)", "Method", "Simulates a left mouse button press without releasing it.", "mouse1press");
-            Browser.AddIntellisense("mouse1release(<void>)", "Method", "Simulates a left mouse button release.", "mouse1release");
-            Browser.AddIntellisense("keypress(<int> keycode)", "Method", "Simulates a key press for the specified keycode. For more information: https://docs.microsoft.com/en-us/windows/desktop/inputdev/virtual-key-codes", "keypress");
-            Browser.AddIntellisense("mouse2release(<void>)", "Method", "Simulates a right mouse button release.", "mouse2release");
-            Browser.AddIntellisense("newcclosure(<function> f)", "Method", "Pushes a new c closure that invokes function 'f' upon call. Used for metatable hooks.", "newcclosure");
-            Browser.AddIntellisense("getinstances(<void>)", "Method", "Returns a list of all instances within the game.", "getinstances");
-            Browser.AddIntellisense("getnilinstances(<void>)", "Method", "Returns a list of all instances parented to nil within the game.", "getnilinstances");
-            Browser.AddIntellisense("readfile(<string> path)", "Method", "Reads the contents of the file located at 'path' and returns it. If the file does not exist, it errors.", "readfile");
-            Browser.AddIntellisense("getscripts(<void>)", "Method", "Returns a list of all scripts within the game.", "getscripts");
-            Browser.AddIntellisense("getrunningscripts(<void>)", "Method", "Returns a list of all scripts currently running.", "getrunningscripts");
-            Browser.AddIntellisense("appendfile(<string> path, <string> content)", "Method", "Appends 'content' to the file contents at 'path'. If the file does not exist, it errors", "appendfile");
-            Browser.AddIntellisense("listfiles(<string> folder)", "Method", "Returns a table of files in 'folder'.", "listfiles");
-            Browser.AddIntellisense("isfile(<string> path)", "Method", "Returns if 'path' is a file or not.", "isfile");
-            Browser.AddIntellisense("isfolder(<string> path)", "Method", "Returns if 'path' is a folder or not.", "isfolder");
-            Browser.AddIntellisense("delfolder(<string> path)", "Method", "Deletes 'folder' in the workspace directory.", "delfolder");
-            Browser.AddIntellisense("delfile(<string> path)", "Method", "Deletes 'file' from the workspace directory.", "delfile");
-            Browser.AddIntellisense("getreg(<void>)", "Method", "Returns the Lua registry.", "getreg");
-            Browser.AddIntellisense("getgc(<void>)", "Method", "Returns a copy of the Lua GC list.", "getgc");
-            Browser.AddIntellisense("mouse1click(<void>)", "Method", "Simulates a full left mouse button press.", "mouse1click");
-            Browser.AddIntellisense("getrawmetatable(<T> value)", "Method", "Retrieve the metatable of value irregardless of value's metatable's __metatable field. Returns nil if it doesn't exist.", "getrawmetatable");
-            Browser.AddIntellisense("setreadonly(<table> table, <bool> ro)", "Method", "Sets table's read-only value to ro", "setreadonly");
-            Browser.AddIntellisense("isreadonly(<table> table)", "Method", "Returns table's read-only condition.", "isreadonly");
-            Browser.AddIntellisense("getrenv(<void>)", "Method", "Returns the global Roblox environment for the LocalScript state.", "getrenv");
-            Browser.AddIntellisense("decompile(<LocalScript, ModuleScript, function> Script, bool Bytecode = false)", "Method", "Decompiles Script and returns the decompiled script. If the decompilation fails, then the return value will be an error message.", "decompile");
-            Browser.AddIntellisense("dumpstring(<string> Script)", "Method", "Returns the Roblox formatted bytecode for source string 'Script'.", "dumpstring");
-            Browser.AddIntellisense("getloadedmodules(<void>)", "Method", "Returns all ModuleScripts loaded in the game.", "getloadedmodules");
-            Browser.AddIntellisense("isrbxactive(<void>)", "Method", "Returns if the Roblox window is in focus.", "getloadedmodules");
-            Browser.AddIntellisense("getcallingscript(<void>)", "Method", "Gets the script that is calling this function.", "getcallingscript");
-            Browser.AddIntellisense("setnonreplicatedproperty(<Instance> obj, <string> prop, <T> value)", "Method", "Sets the prop property of obj, not replicating to the server. Useful for anticheat bypasses.", "setnonreplicatedproperty");
-            Browser.AddIntellisense("getconnections(<Signal> obj)", "Method", "Gets a list of connections to the specified signal. You can then use :Disable and :Enable on the connections to disable/enable them.", "getconnections");
-            Browser.AddIntellisense("getspecialinfo(<Instance> obj)", "Method", "Gets a list of special properties for MeshParts, UnionOperations, and Terrain.", "getspecialinfo");
-            Browser.AddIntellisense("messagebox(<string> message, <string> title, <int> options)", "Method", "Makes a MessageBox with 'message', 'title', and 'options' as options. See https://docs.microsoft.com/en-us/windows/desktop/api/winuser/nf-winuser-messagebox for more information.", "messagebox");
-            Browser.AddIntellisense("messageboxasync(<string> message, <string> title, <int> options)", "Method", "Makes a MessageBox with 'message', 'title', and 'options' as options. See https://docs.microsoft.com/en-us/windows/desktop/api/winuser/nf-winuser-messagebox for more information.", "messageboxasync");
-            Browser.AddIntellisense("rconsolename(<string> title)", "Method", "Sets the currently allocated console title to 'title'.", "rconsolename");
-            Browser.AddIntellisense("rconsoleinput(<void>)", "Method", "Yields until the user inputs information into ther console. Returns the input the put in.", "rconsoleinput");
-            Browser.AddIntellisense("rconsoleinputasync(<void>)", "Method", "Yields until the user inputs information into ther console. Returns the input the put in.", "rconsoleinputasync");
-            Browser.AddIntellisense("rconsoleprint(<string> message)", "Method", "Prints 'message' into the console.", "rconsoleprint");
-            Browser.AddIntellisense("rconsoleinfo(<string> message)", "Method", "Prints 'message' into the console, with a info text before it.", "rconsoleinfo");
-            Browser.AddIntellisense("rconsolewarn(<string> message)", "Method", "Prints 'message' into the console, with a warning text before it.", "rconsolewarn");
-            Browser.AddIntellisense("rconsoleerr(<string> message)", "Method", "Prints 'message' into the console, with a error text before it.", "rconsoleerr");
-            Browser.AddIntellisense("fireclickdetector(<ClickDetector> detector, <number, nil> distance)", "Method", "Fires click detector 'detector' with 'distance'. If a distance is not provided, it will be 0.", "fireclickdetector");
-            Browser.AddIntellisense("firetouchinterest(<Part> part, <TouchTransmitter> transmitter, <number> toggle)", "Method", "Fires touch 'transmitter' with 'part'. Use 0 to toggle it being touched, 1 for it not being toggled.", "firetouchinterest");
-            Browser.AddIntellisense("saveinstance(<table> t)", "Method", "Saves the Roblox game into your workspace folder.", "saveinstance");
-
-            Browser.AddIntellisense("crypt.encrypt(<string> data, <string> key)", "Method", "Encrypt's data with key.", "crypt.encrypt");
-            Browser.AddIntellisense("crypt.decrypt(<string> data, <string> key)", "Method", "Decrypt's data with key.", "crypt.decrypt");
-            Browser.AddIntellisense("crypt.hash(<string> data)", "Method", "Hashes data.", "crypt.decrypt");
-            Browser.AddIntellisense("crypt.base64.encode(<string> data)", "Method", "Encodes data with bas64.", "crypt.base64.encode");
-            Browser.AddIntellisense("crypt.base64.decode(<string> data)", "Method", "Decodes data with bas64.", "crypt.base64.encode");
-            Browser.AddIntellisense("cache_replace(<Instance> obj, <Instance> t_obj)", "Method", "Replace obj in the cache with t_obj.", "cache_replace");
-            Browser.AddIntellisense("cache_invalidate(<Instance> obj)", "Method", "Invalidate obj's cache entry, forcing a recache upon the next lookup.", "invalidate_cache");
-            Browser.AddIntellisense("set_thread_identity(<int> n)", "Method", "Sets the current thread identity after a Task Scheduler cycle is performed. (call wait() after invoking this function for the expected results)", "set_thread_identity");
-            Browser.AddIntellisense("get_thread_identity(<void>)", "Method", "Returns the current thread identity.", "get_thread_identity");
-            Browser.AddIntellisense("is_cached(<Instance> obj)", "Method", "Returns true if the instance is currently cached within the registry.", "is_cached");
-            Browser.AddIntellisense("write_clipboard(<string> content)", "Method", "Writes 'content' to the current Windows clipboard.", "write_clipboard");
-            Browser.AddIntellisense("mousemoverel(<int> x, <int> y)", "Method", "Moves the mouse cursor relatively to the current mouse position by coordinates 'x' and 'y'.", "mousemoverel");
-            Browser.AddIntellisense("cache_replace(<Instance> obj, <Instance> t_obj)", "Method", "Replace obj in the cache with t_obj.", "cache_replace");
-            Browser.AddIntellisense("cache_invalidate(<Instance> obj)", "Method", "Invalidate obj's cache entry, forcing a recache upon the next lookup.", "invalidate_cache");
-            Browser.AddIntellisense("open_web_socket(<string> name)", "Method", "Open's the Synapse WebSocket with channel name. This function will not exist if the user did not enable WebSocket support in theme.json.", "open_web_socket");
+            if (!File.Exists($"bin/tabs/{Globals.CurrentTab}.txt")) File.WriteAllText($"bin/tabs/{Globals.CurrentTab}.txt", "");
+            Browser.SetText(File.ReadAllText($"bin/tabs/{Globals.CurrentTab}.txt"));
         }
 
         public void Attach()
@@ -581,14 +241,16 @@ namespace Synapse_UI_WPF
 
         public void SetEditor(string Text)
         {
+            if (!File.Exists($"bin/tabs/{CurrentTab()}.txt")) File.WriteAllText($"bin/tabs/{CurrentTab()}.txt", "");
+            File.WriteAllText($"bin/tabs/{CurrentTab()}.txt", Text);
             Browser.SetText(Text);
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
 
-            DataInterface.Save("savedws", Browser.GetText());
-            //Application.Current.Shutdown();
+            if (!File.Exists($"bin/tabs/{CurrentTab()}.txt")) File.WriteAllText($"bin/tabs/{CurrentTab()}.txt", "");
+            File.WriteAllText($"bin/tabs/{CurrentTab()}.txt", Browser.GetText());
             Environment.Exit(0);
         }
 
@@ -612,7 +274,7 @@ namespace Synapse_UI_WPF
 
         private void ClearButton_Click(object sender, RoutedEventArgs e)
         {
-            Browser.SetText("");
+            SetEditor("");
         }
 
         private void IconBox_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -622,7 +284,7 @@ namespace Synapse_UI_WPF
                 "Synapse X Credits", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        private void OpenFileButton_Click(object sender, RoutedEventArgs e)
+        public void OpenFileButton_Click(object sender, RoutedEventArgs e)
         {
             var OpenDialog = new OpenFileDialog
             {
@@ -633,7 +295,8 @@ namespace Synapse_UI_WPF
 
             try
             {
-                Browser.SetText(File.ReadAllText(OpenDialog.FileName));
+                Console.WriteLine(OpenDialog.FileName);
+                SetEditor(File.ReadAllText(OpenDialog.FileName));
             }
             catch (Exception ex) { Console.WriteLine(ex); }
         }
@@ -660,7 +323,7 @@ namespace Synapse_UI_WPF
 
         private void SaveFileButton_Click(object sender, RoutedEventArgs e)
         {
-            var SaveDialog = new SaveFileDialog {Filter = "Script Files (*.lua, *.txt)|*.lua;*.txt", FileName = ""};
+            var SaveDialog = new SaveFileDialog { Filter = "Script Files (*.lua, *.txt)|*.lua;*.txt", FileName = "" };
 
             SaveDialog.FileOk += (o, args) =>
             {
@@ -672,9 +335,18 @@ namespace Synapse_UI_WPF
 
         private void AttachButton_Click(object sender, RoutedEventArgs e)
         {
-            if (Worker.IsBusy) return;
-
-            Worker.RunWorkerAsync();
+            bool IsAdmin = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
+            if (IsAdmin)
+            {
+                SetTitle("Attach doesn't work, Manually launch krampus!", 3000);
+                //ProcessCreator.CreateProcess(0);
+                //Process.Start(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Globals.KrampusPath));
+            }
+            else
+            {
+                SetTitle("Attach doesn't work, Manually launch krampus!", 3000);
+                //SetTitle("Not enough Permissions, Please run as Admin!", 3000);
+            }
         }
 
         private void ScriptHubButton_Click(object sender, RoutedEventArgs e)
@@ -689,9 +361,24 @@ namespace Synapse_UI_WPF
             HubWorker.RunWorkerAsync();
         }
 
+        private void HubWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+
+            Dispatcher.Invoke(() =>
+            {
+                ScriptHubInit = false;
+                ScriptHubButton.Content = Globals.Theme.Main.ScriptHubButton.TextNormal;
+
+                var ScriptHub = new ScriptHubWindow(this);
+                ScriptHub.Show();
+            });
+        }
+
         private void ExecuteButton_Click(object sender, RoutedEventArgs e)
         {
-            Execute(Browser.GetText());
+            if (!File.Exists($"bin/tabs/{CurrentTab()}.txt")) File.WriteAllText($"bin/tabs/{CurrentTab()}.txt", "");
+            File.WriteAllText($"bin/tabs/{CurrentTab()}.txt", Browser.GetText());
+            Task.Run(() => Execute(Browser.GetText()));
         }
 
         private void ExecuteItem_Click(object sender, RoutedEventArgs e)
@@ -719,7 +406,7 @@ namespace Synapse_UI_WPF
             {
                 var Element = ScriptBox.Items[ScriptBox.SelectedIndex].ToString();
 
-                Browser.SetText(File.ReadAllText(Path.Combine(ScriptsDirectory, Element)));
+                SetEditor(File.ReadAllText(Path.Combine(ScriptsDirectory, Element)));
             }
             catch (Exception)
             {
@@ -738,30 +425,66 @@ namespace Synapse_UI_WPF
             }
         }
 
-        [Obfuscation(Feature = "virtualization", Exclude = false)]
-        private void HubWorker_DoWork(object sender, DoWorkEventArgs e)
+        private void CloseTab_Click(object sender, RoutedEventArgs e)
         {
-            
-        }
+            if (TabSystem.SelectedIndex == -1) return;
 
-        [Obfuscation(Feature = "virtualization", Exclude = false)]
-        public void InlineAutoUpdate()
-        {
-            SetTitle("Attach no work silly boy, Do it yourself :D", 3000);
-            IsInlineUpdating = false;
-        }
-
-        [Obfuscation(Feature = "virtualization", Exclude = false)]
-        private void Worker_DoWork(object sender, DoWorkEventArgs e)
-        {
-
-            if (Globals.Version != WebInterface.VerifyWebsiteWithVersion(this))
+            try
             {
-                IsInlineUpdating = true;
-                new Thread(InlineAutoUpdate).Start();
-
-                return;
+                //var Tab = TabSystem.Items[TabSystem.SelectedIndex].ToString();
+                Console.WriteLine(CurrentTab()); 
             }
+            catch (Exception)
+            {
+                MessageBox.Show("Failed to close tab.", "Synapse X", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void ClearTab_Click(object sender, RoutedEventArgs e)
+        {
+            if (TabSystem.SelectedIndex == -1) return;
+
+            try
+            {
+                Console.WriteLine(CurrentTab());
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Failed to clear tab.", "Synapse X", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+
+        private object CurrentTab()
+        {
+            var Tab = TabSystem.SelectedItem as TabItem;
+            return Tab.Header;
+        }
+        private void CreateTab(string Name)
+        {
+                TabItem NewTab = new TabItem();
+                NewTab.Header = Name;
+                var Converter = new BrushConverter();
+                NewTab.Background = (System.Windows.Media.Brush)Converter.ConvertFromString("#696969");
+                NewTab.Foreground = (System.Windows.Media.Brush)Converter.ConvertFromString("#FFFFFF");
+                NewTab.BorderBrush = (System.Windows.Media.Brush)Converter.ConvertFromString("#545454");
+                TabSystem.Items.Insert(TabSystem.Items.Count - 1, NewTab);
+                Dispatcher.BeginInvoke(new Action(() => TabSystem.SelectedIndex = TabSystem.Items.Count-2));
+                
+        }
+
+        private void TabSystem_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            Globals.CurrentTab = CurrentTab();
+            if (e.AddedItems.Contains(AddTabButton))
+            {
+                CreateTab("Tab " + (TabSystem.Items.Count));
+            } else
+            {
+                if (!File.Exists($"bin/tabs/{CurrentTab()}.txt")) File.WriteAllText($"bin/tabs/{CurrentTab()}.txt", "");
+                SetEditor(File.ReadAllText($"bin/tabs/{CurrentTab()}.txt"));
+            }
+            e.Handled = true;
         }
     }
 }

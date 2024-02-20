@@ -10,7 +10,7 @@ namespace Synapse_UI_WPF.Interfaces
 {
     public static class DataInterface
     {
-        [Obfuscation(Feature = "virtualization", Exclude = false)]
+        
         public static void Save<T>(string Name, T Data)
         {
             var Serial = JsonConvert.SerializeObject(Data);
@@ -19,7 +19,7 @@ namespace Synapse_UI_WPF.Interfaces
             File.WriteAllText("auth\\" + Name + ".bin", Convert.ToBase64String(Protected));
         }
 
-        [Obfuscation(Feature = "virtualization", Exclude = false)]
+        
         public static T Read<T>(string Name)
         {
             var Unprotected = ProtectedData.Unprotect(Convert.FromBase64String(File.ReadAllText("auth\\" + Name + ".bin")),
@@ -27,13 +27,13 @@ namespace Synapse_UI_WPF.Interfaces
             return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(Unprotected));
         }
 
-        [Obfuscation(Feature = "virtualization", Exclude = false)]
+        
         public static bool Exists(string Name)
         {
             return File.Exists("auth\\" + Name + ".bin");
         }
 
-        [Obfuscation(Feature = "virtualization", Exclude = false)]
+        
         public static void Delete(string Name)
         {
             if (File.Exists("auth\\" + Name + ".bin")) File.Delete("auth\\" + Name + ".bin");

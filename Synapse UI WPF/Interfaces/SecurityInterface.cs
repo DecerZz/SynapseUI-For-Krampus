@@ -10,7 +10,7 @@ namespace Synapse_UI_WPF.Interfaces
 {
     public static class SecurityInterface
     {
-        [Obfuscation(Feature = "virtualization", Exclude = false)]
+        
         public static Tuple<bool, string> ScanMachine()
         {
             var BlProc = new List<string>

@@ -16,7 +16,7 @@ namespace Synapse_UI_WPF.Interfaces
     public static class ThemeInterface
     {
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TImage
         {
             public string Path;
@@ -30,7 +30,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TFont
         {
             public string Name;
@@ -46,7 +46,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TColor
         {
             public byte A;
@@ -72,7 +72,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TButton
         {
             public TImage Image;
@@ -83,7 +83,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TGlyphButton
         {
             public TColor BackColor;
@@ -91,7 +91,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TYieldButton
         {
             public TImage Image;
@@ -103,7 +103,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TListBox
         {
             public TFont Font;
@@ -112,14 +112,14 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TLogo
         {
             public TImage Image;
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TSeperator
         {
             public bool Enabled;
@@ -127,7 +127,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TForm
         {
             public TImage Image;
@@ -137,7 +137,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TWebSocket
         {
             public bool Enabled;
@@ -145,7 +145,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TLabel
         {
             public bool Enabled;
@@ -156,7 +156,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TFormatLabel
         {
             public bool Enabled;
@@ -167,7 +167,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TAttachStrings
         {
             public string Checking;
@@ -182,7 +182,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TInitStrings
         {
             public string CheckingWhitelist;
@@ -198,7 +198,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TRightClickStrings
         {
             public string Execute;
@@ -207,7 +207,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TEditor
         {
             public bool Light;
@@ -215,7 +215,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TMain
         {
             public TForm Base;
@@ -240,7 +240,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TScriptHub
         {
             public TForm Base;
@@ -255,7 +255,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TLoad
         {
             public TForm Base;
@@ -267,7 +267,7 @@ namespace Synapse_UI_WPF.Interfaces
         }
 
         [Serializable]
-        [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+        
         public class TBase
         {
             public uint Version;
